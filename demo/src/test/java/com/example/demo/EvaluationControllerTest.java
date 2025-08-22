@@ -1,7 +1,6 @@
 package com.example.demo;
 
 import com.example.demo.model.*;
-import com.example.demo.model.Order.Status;
 import com.example.demo.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,8 +8,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class OrderControllerTest {
+class EvaluationControllerTest {
 
+    @Autowired
+    private EvaluationRepository evaluationRepository;
+    @Autowired
+    private MissionRepository missionRepository;
     @Autowired
     private OrderRepository orderRepository;
     @Autowired
@@ -18,12 +21,10 @@ class OrderControllerTest {
     @Autowired
     private ProviderRepository providerRepository;
     @Autowired
-    private MissionRepository missionRepository;
-    @Autowired
-    private EvaluationRepository evaluationRepository;
-    @Autowired
     private CompanyRepository companyRepository;
 
+    private Evaluation evaluation;
+    private Mission mission;
     private Order order;
     private Project project;
     private Provider provider;
@@ -47,14 +48,14 @@ class OrderControllerTest {
         provider = Provider.builder().name("Dev Solutions").email("dev@solutions.com").contact("Alice").category(Provider.Category.DEVELOPMENT).build();
         providerRepository.save(provider);
 
-        order = Order.builder()
-                .description("Develop homepage")
-                .quantity(1)
-                .status(Status.PENDING)
-                .project(project)
-                .provider(provider)
-                .build();
+        order = Order.builder().description("Develop homepage").quantity(1).status(Order.Status.PENDING).project(project).provider(provider).build();
         orderRepository.save(order);
+
+        mission = Mission.builder().title("Homepage development").order(order).build();
+        missionRepository.save(mission);
+
+        evaluation = Evaluation.builder().rating(5).comment("Excellent").mission(mission).build();
+        evaluationRepository.save(evaluation);
     }
 
     @Test
