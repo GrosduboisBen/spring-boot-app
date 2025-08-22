@@ -33,3 +33,4 @@ public class Company {
         this.createdAt = LocalDateTime.now();
     }
 }
+
