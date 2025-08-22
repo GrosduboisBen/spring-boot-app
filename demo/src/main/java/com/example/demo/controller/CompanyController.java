@@ -1,56 +1,91 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.CompanyRequest;
+import com.example.demo.dto.CompanyResponse;
 import com.example.demo.model.Company;
 import com.example.demo.repository.CompanyRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/companies")
+@RequiredArgsConstructor
 public class CompanyController {
 
     private final CompanyRepository companyRepository;
 
-    public CompanyController(CompanyRepository companyRepository) {
-        this.companyRepository = companyRepository;
+    // Convert entity → response
+    private CompanyResponse toResponse(Company company) {
+        return CompanyResponse.builder()
+                .id(company.getId())
+                .name(company.getName())
+                .email(company.getEmail())
+                .contact(company.getContact())
+                .industry(company.getIndustry())
+                .createdAt(company.getCreatedAt())
+                .build();
+    }
+
+    // Convert request → entity
+    private Company toEntity(CompanyRequest request) {
+        return Company.builder()
+                .name(request.getName())
+                .email(request.getEmail())
+                .contact(request.getContact())
+                .industry(request.getIndustry())
+                .build();
     }
 
     @GetMapping
-    public List<Company> getAllCompanies() {
-        return companyRepository.findAll();
+    public List<CompanyResponse> getAllCompanies() {
+        return companyRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Company> getCompanyById(@PathVariable Long id) {
+    public ResponseEntity<CompanyResponse> getCompanyById(@PathVariable Long id) {
         return companyRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(company -> ResponseEntity.ok(toResponse(company)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // TODO: Update method to insure required fields are present
     @PostMapping
-    public Company createCompany(@RequestBody Company company) {
-        return companyRepository.save(company);
+    public ResponseEntity<CompanyResponse> createCompany(@RequestBody CompanyRequest request) {
+        Company company = toEntity(request);
+        Company savedCompany = companyRepository.save(company);
+        return ResponseEntity.ok(toResponse(savedCompany));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Company> updateCompany(@PathVariable Long id, @RequestBody Company updatedCompany) {
-        return companyRepository.findById(id).map(company -> {
-            company.setName(updatedCompany.getName());
-            company.setEmail(updatedCompany.getEmail());
-            company.setContact(updatedCompany.getContact());
-            company.setIndustry(updatedCompany.getIndustry());
-            return ResponseEntity.ok(companyRepository.save(company));
-        }).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<CompanyResponse> updateCompany(
+            @PathVariable Long id,
+            @RequestBody CompanyRequest request
+    ) {
+        return companyRepository.findById(id)
+                .map(existing -> {
+                    existing.setName(request.getName());
+                    existing.setEmail(request.getEmail());
+                    existing.setContact(request.getContact());
+                    existing.setIndustry(request.getIndustry());
+                    Company updated = companyRepository.save(existing);
+                    return ResponseEntity.ok(toResponse(updated));
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
-   @DeleteMapping("/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCompany(@PathVariable Long id) {
-        return companyRepository.findById(id).map(company -> {
-            companyRepository.delete(company);
-            return ResponseEntity.noContent().<Void>build(); // ✅ explicit generic
-        }).orElse(ResponseEntity.notFound().build());
+    return companyRepository.findById(id)
+            .map(existing -> {
+                companyRepository.delete(existing);
+                return ResponseEntity.noContent().<Void>build();
+            })
+            .orElse(ResponseEntity.notFound().build());
     }
 }
