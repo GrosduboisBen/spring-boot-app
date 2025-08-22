@@ -1,33 +1,67 @@
 package com.example.demo;
 
-import com.example.demo.model.*;
-import com.example.demo.repository.*;
+import com.example.demo.model.Company;
+import com.example.demo.model.Evaluation;
+import com.example.demo.model.Mission;
+import com.example.demo.model.Order;
+import com.example.demo.model.Project;
+import com.example.demo.model.Provider;
+import com.example.demo.repository.CompanyRepository;
+import com.example.demo.repository.EvaluationRepository;
+import com.example.demo.repository.MissionRepository;
+import com.example.demo.repository.OrderRepository;
+import com.example.demo.repository.ProjectRepository;
+import com.example.demo.repository.ProviderRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDate;
+import java.util.Optional;
+
+import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 class EvaluationControllerTest {
 
     @Autowired
-    private EvaluationRepository evaluationRepository;
-    @Autowired
-    private MissionRepository missionRepository;
-    @Autowired
-    private OrderRepository orderRepository;
-    @Autowired
-    private ProjectRepository projectRepository;
-    @Autowired
-    private ProviderRepository providerRepository;
+    private MockMvc mockMvc;
+
     @Autowired
     private CompanyRepository companyRepository;
 
-    private Evaluation evaluation;
-    private Mission mission;
-    private Order order;
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
+    private ProviderRepository providerRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private MissionRepository missionRepository;
+
+    @Autowired
+    private EvaluationRepository evaluationRepository;
+
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     private Project project;
     private Provider provider;
+    private Order order;
+    private Mission mission;
+    private Evaluation evaluation;
     private Company company;
 
     @BeforeEach
@@ -39,25 +73,106 @@ class EvaluationControllerTest {
         providerRepository.deleteAll();
         companyRepository.deleteAll();
 
-        company = Company.builder().name("Acme Corp").contact("John").email("john@acme.com").build();
-        companyRepository.save(company);
 
-        project = Project.builder().title("Website").description("Redesign").budget(5000.0).company(company).build();
-        projectRepository.save(project);
+        company = Company.builder()
+                .name("Acme Inc.")
+                .email("contact@acme.com")
+                .contact("John Doe")
+                .industry("IT")
+                .build();
+        company = companyRepository.save(company);
+       
+        project = Project.builder()
+                .title("Test Project")
+                .description("Project desc")
+                .budget(5000.0)
+                .company(company) // optional dummy company
+                .build();
+        project = projectRepository.save(project);
 
-        provider = Provider.builder().name("Dev Solutions").email("dev@solutions.com").contact("Alice").category(Provider.Category.DEVELOPMENT).build();
-        providerRepository.save(provider);
+        provider = Provider.builder()
+                .name("John Doe")
+                .email("john@provider.com")
+                .contact("123456789")
+                .category(Provider.Category.DEVELOPMENT)
+                .build();
+        provider = providerRepository.save(provider);
 
-        order = Order.builder().description("Develop homepage").quantity(1).status(Order.Status.PENDING).project(project).provider(provider).build();
-        orderRepository.save(order);
+        order = Order.builder()
+                .description("Test Order")
+                .quantity(10)
+                .status(Order.Status.PENDING)
+                .project(project)
+                .provider(provider)
+                .build();
+        order = orderRepository.save(order);
 
-        mission = Mission.builder().title("Homepage development").order(order).build();
-        missionRepository.save(mission);
+        mission = Mission.builder()
+                .title("Test Mission")
+                .description("Mission desc")
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusDays(5))
+                .order(order)
+                .build();
+        mission = missionRepository.save(mission);
 
-        evaluation = Evaluation.builder().rating(5).comment("Excellent").mission(mission).build();
-        evaluationRepository.save(evaluation);
+        evaluation = Evaluation.builder()
+                .rating(4)
+                .comment("Good work")
+                .mission(mission)
+                .build();
+        evaluation = evaluationRepository.save(evaluation);
     }
 
     @Test
-    void contextLoads() {}
+    void testGetAllEvaluations() throws Exception {
+        mockMvc.perform(get("/api/evaluations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+    }
+
+    @Test
+    void testCreateEvaluation() throws Exception {
+      String json = """
+        {
+            "rating":4,
+            "comment":"Good work",
+            "missionId":%d
+        }
+        """.formatted(mission.getId());
+
+    mockMvc.perform(post("/api/evaluations")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.rating").value(4))
+        .andExpect(jsonPath("$.missionId").value(mission.getId()));
+    }
+
+    @Test
+    void testUpdateEvaluation() throws Exception {
+            String json = """
+        {
+            "rating":5,
+            "comment":"Excellent work",
+            "missionId":%d
+        }
+        """.formatted(mission.getId());
+
+    mockMvc.perform(put("/api/evaluations/{id}", evaluation.getId())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.rating").value(5))
+        .andExpect(jsonPath("$.comment").value("Excellent work"));
+    }
+
+    @Test
+    void testDeleteEvaluation() throws Exception {
+        mockMvc.perform(delete("/api/evaluations/" + evaluation.getId()))
+                .andExpect(status().isNoContent());
+
+        Optional<Evaluation> deleted = evaluationRepository.findById(evaluation.getId());
+        assert(deleted.isEmpty());
+    }
 }
