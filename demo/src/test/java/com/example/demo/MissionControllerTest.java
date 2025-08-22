@@ -136,7 +136,7 @@ class MissionControllerTest {
             .content(json))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.title").value("New Mission"))
-        .andExpect(jsonPath("$.order.id").value(order.getId()));
+        .andExpect(jsonPath("$.orderId").value(order.getId()));
     }
 
     @Test

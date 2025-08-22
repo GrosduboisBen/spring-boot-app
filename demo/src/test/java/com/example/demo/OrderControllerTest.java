@@ -124,8 +124,8 @@ class OrderControllerTest {
             .content(json))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.description").value("Build API"))
-        .andExpect(jsonPath("$.project.id").value(project.getId()))
-        .andExpect(jsonPath("$.provider.id").value(provider.getId()));
+        .andExpect(jsonPath("$.projectId").value(project.getId()))
+        .andExpect(jsonPath("$.providerId").value(provider.getId()));
     }
 
     @Test

@@ -104,7 +104,7 @@ class ProjectControllerTest {
             .content(json))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.title").value("Mobile App"))
-        .andExpect(jsonPath("$.company.id").value(company.getId()));
+        .andExpect(jsonPath("$.companyId").value(company.getId()));
     }
 
     @Test

@@ -146,7 +146,7 @@ class EvaluationControllerTest {
             .content(json))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.rating").value(4))
-        .andExpect(jsonPath("$.mission.id").value(mission.getId()));
+        .andExpect(jsonPath("$.missionId").value(mission.getId()));
     }
 
     @Test
