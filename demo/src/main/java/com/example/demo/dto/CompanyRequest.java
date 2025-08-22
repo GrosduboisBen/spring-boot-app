@@ -1,9 +1,11 @@
-// src/main/java/com/example/demo/dto/CompanyRequest.java
 package com.example.demo.dto;
 
-import lombok.Data;
+import lombok.*;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class CompanyRequest {
     private String name;
     private String email;

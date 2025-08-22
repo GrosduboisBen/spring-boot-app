@@ -2,30 +2,58 @@ package com.example.demo;
 
 import com.example.demo.model.Company;
 import com.example.demo.model.Project;
-import com.example.demo.repository.*;
+import com.example.demo.repository.CompanyRepository;
+import com.example.demo.repository.EvaluationRepository;
+import com.example.demo.repository.MissionRepository;
+import com.example.demo.repository.OrderRepository;
+import com.example.demo.repository.ProjectRepository;
+import com.example.demo.repository.ProviderRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Optional;
+
+import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 class ProjectControllerTest {
 
     @Autowired
-    private ProjectRepository projectRepository;
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Autowired
     private CompanyRepository companyRepository;
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
     @Autowired
     private OrderRepository orderRepository;
+
     @Autowired
     private MissionRepository missionRepository;
+
     @Autowired
     private EvaluationRepository evaluationRepository;
+
     @Autowired
     private ProviderRepository providerRepository;
 
-    private Project project;
+
     private Company company;
+    private Project project;
 
     @BeforeEach
     void setUp() {
@@ -37,11 +65,12 @@ class ProjectControllerTest {
         companyRepository.deleteAll();
 
         company = Company.builder()
-                .name("Acme Corp")
+                .name("Acme Inc.")
+                .email("contact@acme.com")
                 .contact("John Doe")
-                .email("john@acme.com")
+                .industry("IT")
                 .build();
-        companyRepository.save(company);
+        company = companyRepository.save(company);
 
         project = Project.builder()
                 .title("Website Redesign")
@@ -49,9 +78,60 @@ class ProjectControllerTest {
                 .budget(10000.0)
                 .company(company)
                 .build();
-        projectRepository.save(project);
+        project = projectRepository.save(project);
     }
 
     @Test
-    void contextLoads() {}
+    void testGetAllProjects() throws Exception {
+        mockMvc.perform(get("/api/projects"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+    }
+
+    @Test
+    void testCreateProject() throws Exception {
+         String json = """
+        {
+            "title":"Mobile App",
+            "description":"Develop mobile application",
+            "budget":15000.0,
+            "companyId":%d
+        }
+        """.formatted(company.getId());
+
+    mockMvc.perform(post("/api/projects")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("Mobile App"))
+        .andExpect(jsonPath("$.company.id").value(company.getId()));
+    }
+
+    @Test
+    void testUpdateProject() throws Exception {
+          String json = """
+        {
+            "title":"New Title",
+            "description":"New Desc",
+            "budget":12000.0,
+            "companyId":%d
+        }
+        """.formatted(company.getId());
+
+    mockMvc.perform(put("/api/projects/" + project.getId())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("New Title"))
+        .andExpect(jsonPath("$.budget").value(12000.0));
+    }
+
+    @Test
+    void testDeleteProject() throws Exception {
+        mockMvc.perform(delete("/api/projects/" + project.getId()))
+                .andExpect(status().isNoContent());
+
+        Optional<Project> deleted = projectRepository.findById(project.getId());
+        assert(deleted.isEmpty());
+    }
 }
