@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ErrorResponse;
 import com.example.demo.dto.ProviderRequest;
 import com.example.demo.dto.ProviderResponse;
 import com.example.demo.model.Provider;
@@ -21,19 +22,6 @@ public class ProviderController {
 
     public ProviderController(ProviderRepository providerRepository) {
         this.providerRepository = providerRepository;
-    }
-
-    // ✅ DTO interne pour les erreurs
-    static class ErrorResponse {
-        private final String message;
-
-        public ErrorResponse(String message) {
-            this.message = message;
-        }
-
-        public String getMessage() {
-            return message;
-        }
     }
 
     @PostMapping
