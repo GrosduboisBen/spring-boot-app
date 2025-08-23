@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ErrorResponse;
 import com.example.demo.dto.OrderRequest;
 import com.example.demo.dto.OrderResponse;
 import com.example.demo.model.Order;
@@ -9,10 +10,12 @@ import com.example.demo.repository.OrderRepository;
 import com.example.demo.repository.ProjectRepository;
 import com.example.demo.repository.ProviderRepository;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -32,67 +35,121 @@ public class OrderController {
     }
 
     @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(@RequestBody OrderRequest request) {
-        Project project = projectRepository.findById(request.getProjectId())
-                .orElseThrow(() -> new RuntimeException("Project not found"));
-        Provider provider = providerRepository.findById(request.getProviderId())
-                .orElseThrow(() -> new RuntimeException("Provider not found"));
+    public ResponseEntity<?> createOrder(@RequestBody OrderRequest request) {
+        try {
+            Optional<Project> projectOpt = projectRepository.findById(request.getProjectId());
+            if (projectOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Project not found with id " + request.getProjectId()));
+            }
 
-        Order order = Order.builder()
-                .description(request.getDescription())
-                .quantity(request.getQuantity())
-                .status(request.getStatus())
-                .project(project)
-                .provider(provider)
-                .build();
+            Optional<Provider> providerOpt = providerRepository.findById(request.getProviderId());
+            if (providerOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Provider not found with id " + request.getProviderId()));
+            }
 
-        Order saved = orderRepository.save(order);
-        return ResponseEntity.ok(toResponse(saved));
+            Order order = Order.builder()
+                    .description(request.getDescription())
+                    .quantity(request.getQuantity())
+                    .status(request.getStatus())
+                    .project(projectOpt.get())
+                    .provider(providerOpt.get())
+                    .build();
+
+            Order saved = orderRepository.save(order);
+            return ResponseEntity.ok(toResponse(saved));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while creating the order."));
+        }
     }
 
     @GetMapping
-    public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAll().stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+    public ResponseEntity<?> getAllOrders() {
+        try {
+            List<OrderResponse> orders = orderRepository.findAll().stream()
+                    .map(this::toResponse)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(orders);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while fetching orders."));
+        }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long id) {
-        return orderRepository.findById(id)
-                .map(order -> ResponseEntity.ok(toResponse(order)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getOrderById(@PathVariable Long id) {
+        try {
+            Optional<Order> orderOpt = orderRepository.findById(id);
+            if (orderOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Order not found with id " + id));
+            }
+
+            return ResponseEntity.ok(toResponse(orderOpt.get()));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while fetching the order."));
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<OrderResponse> updateOrder(@PathVariable Long id, @RequestBody OrderRequest request) {
-        return orderRepository.findById(id)
-                .map(existing -> {
-                    Project project = projectRepository.findById(request.getProjectId())
-                            .orElseThrow(() -> new RuntimeException("Project not found"));
-                    Provider provider = providerRepository.findById(request.getProviderId())
-                            .orElseThrow(() -> new RuntimeException("Provider not found"));
+    public ResponseEntity<?> updateOrder(@PathVariable Long id, @RequestBody OrderRequest request) {
+        try {
+            Optional<Order> orderOpt = orderRepository.findById(id);
+            if (orderOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Order not found with id " + id));
+            }
 
-                    existing.setDescription(request.getDescription());
-                    existing.setQuantity(request.getQuantity());
-                    existing.setStatus(request.getStatus());
-                    existing.setProject(project);
-                    existing.setProvider(provider);
+            Optional<Project> projectOpt = projectRepository.findById(request.getProjectId());
+            if (projectOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Project not found with id " + request.getProjectId()));
+            }
 
-                    Order updated = orderRepository.save(existing);
-                    return ResponseEntity.ok(toResponse(updated));
-                })
-                .orElse(ResponseEntity.notFound().build());
+            Optional<Provider> providerOpt = providerRepository.findById(request.getProviderId());
+            if (providerOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Provider not found with id " + request.getProviderId()));
+            }
+
+            Order existing = orderOpt.get();
+            existing.setDescription(request.getDescription());
+            existing.setQuantity(request.getQuantity());
+            existing.setStatus(request.getStatus());
+            existing.setProject(projectOpt.get());
+            existing.setProvider(providerOpt.get());
+
+            Order updated = orderRepository.save(existing);
+            return ResponseEntity.ok(toResponse(updated));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while updating the order."));
+        }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
-        return orderRepository.findById(id)
-                .map(existing -> {
-                    orderRepository.delete(existing);
-                    return ResponseEntity.noContent().<Void>build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> deleteOrder(@PathVariable Long id) {
+        try {
+            Optional<Order> orderOpt = orderRepository.findById(id);
+            if (orderOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Order not found with id " + id));
+            }
+
+            orderRepository.delete(orderOpt.get());
+            return ResponseEntity.noContent().build();
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while deleting the order."));
+        }
     }
 
     private OrderResponse toResponse(Order order) {
