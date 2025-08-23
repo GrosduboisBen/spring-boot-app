@@ -1,14 +1,17 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ErrorResponse;
 import com.example.demo.dto.ProviderRequest;
 import com.example.demo.dto.ProviderResponse;
 import com.example.demo.model.Provider;
 import com.example.demo.repository.ProviderRepository;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -22,54 +25,95 @@ public class ProviderController {
     }
 
     @PostMapping
-    public ResponseEntity<ProviderResponse> createProvider(@RequestBody ProviderRequest request) {
-        Provider provider = Provider.builder()
-                .name(request.getName())
-                .email(request.getEmail())
-                .contact(request.getContact())
-                .category(request.getCategory())
-                .build();
+    public ResponseEntity<?> createProvider(@RequestBody ProviderRequest request) {
+        try {
+            Provider provider = Provider.builder()
+                    .name(request.getName())
+                    .email(request.getEmail())
+                    .contact(request.getContact())
+                    .category(request.getCategory())
+                    .build();
 
-        Provider saved = providerRepository.save(provider);
-        return ResponseEntity.ok(toResponse(saved));
+            Provider saved = providerRepository.save(provider);
+            return ResponseEntity.ok(toResponse(saved));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while creating the provider."));
+        }
     }
 
     @GetMapping
-    public List<ProviderResponse> getAllProviders() {
-        return providerRepository.findAll().stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+    public ResponseEntity<?> getAllProviders() {
+        try {
+            List<ProviderResponse> providers = providerRepository.findAll().stream()
+                    .map(this::toResponse)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(providers);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while fetching providers."));
+        }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProviderResponse> getProviderById(@PathVariable Long id) {
-        return providerRepository.findById(id)
-                .map(provider -> ResponseEntity.ok(toResponse(provider)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getProviderById(@PathVariable Long id) {
+        try {
+            Optional<Provider> providerOpt = providerRepository.findById(id);
+            if (providerOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Provider not found with id " + id));
+            }
+
+            return ResponseEntity.ok(toResponse(providerOpt.get()));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while fetching the provider."));
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProviderResponse> updateProvider(@PathVariable Long id, @RequestBody ProviderRequest request) {
-        return providerRepository.findById(id)
-                .map(existing -> {
-                    existing.setName(request.getName());
-                    existing.setEmail(request.getEmail());
-                    existing.setContact(request.getContact());
-                    existing.setCategory(request.getCategory());
-                    Provider updated = providerRepository.save(existing);
-                    return ResponseEntity.ok(toResponse(updated));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> updateProvider(@PathVariable Long id, @RequestBody ProviderRequest request) {
+        try {
+            Optional<Provider> providerOpt = providerRepository.findById(id);
+            if (providerOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Provider not found with id " + id));
+            }
+
+            Provider existing = providerOpt.get();
+            existing.setName(request.getName());
+            existing.setEmail(request.getEmail());
+            existing.setContact(request.getContact());
+            existing.setCategory(request.getCategory());
+
+            Provider updated = providerRepository.save(existing);
+            return ResponseEntity.ok(toResponse(updated));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while updating the provider."));
+        }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProvider(@PathVariable Long id) {
-        return providerRepository.findById(id)
-                .map(existing -> {
-                    providerRepository.delete(existing);
-                    return ResponseEntity.noContent().<Void>build(); // ✅ fixed type issue
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> deleteProvider(@PathVariable Long id) {
+        try {
+            Optional<Provider> providerOpt = providerRepository.findById(id);
+            if (providerOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Provider not found with id " + id));
+            }
+
+            providerRepository.delete(providerOpt.get());
+            return ResponseEntity.noContent().build();
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while deleting the provider."));
+        }
     }
 
     private ProviderResponse toResponse(Provider provider) {

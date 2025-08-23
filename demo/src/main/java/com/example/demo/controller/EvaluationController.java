@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ErrorResponse;
 import com.example.demo.dto.EvaluationRequest;
 import com.example.demo.dto.EvaluationResponse;
 import com.example.demo.model.Evaluation;
@@ -7,10 +8,12 @@ import com.example.demo.model.Mission;
 import com.example.demo.repository.EvaluationRepository;
 import com.example.demo.repository.MissionRepository;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -27,59 +30,105 @@ public class EvaluationController {
     }
 
     @PostMapping
-    public ResponseEntity<EvaluationResponse> createEvaluation(@RequestBody EvaluationRequest request) {
-        Mission mission = missionRepository.findById(request.getMissionId())
-                .orElseThrow(() -> new RuntimeException("Mission not found"));
+    public ResponseEntity<?> createEvaluation(@RequestBody EvaluationRequest request) {
+        try {
+            Optional<Mission> missionOpt = missionRepository.findById(request.getMissionId());
+            if (missionOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Mission not found with id " + request.getMissionId()));
+            }
 
-        Evaluation evaluation = Evaluation.builder()
-                .rating(request.getRating())
-                .comment(request.getComment())
-                .mission(mission)
-                .build();
+            Evaluation evaluation = Evaluation.builder()
+                    .rating(request.getRating())
+                    .comment(request.getComment())
+                    .mission(missionOpt.get())
+                    .build();
 
-        Evaluation saved = evaluationRepository.save(evaluation);
-        return ResponseEntity.ok(toResponse(saved));
+            Evaluation saved = evaluationRepository.save(evaluation);
+            return ResponseEntity.ok(toResponse(saved));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while creating the evaluation."));
+        }
     }
 
     @GetMapping
-    public List<EvaluationResponse> getAllEvaluations() {
-        return evaluationRepository.findAll().stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+    public ResponseEntity<?> getAllEvaluations() {
+        try {
+            List<EvaluationResponse> evaluations = evaluationRepository.findAll().stream()
+                    .map(this::toResponse)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(evaluations);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while fetching evaluations."));
+        }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EvaluationResponse> getEvaluationById(@PathVariable Long id) {
-        return evaluationRepository.findById(id)
-                .map(evaluation -> ResponseEntity.ok(toResponse(evaluation)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getEvaluationById(@PathVariable Long id) {
+        try {
+            Optional<Evaluation> evaluationOpt = evaluationRepository.findById(id);
+            if (evaluationOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Evaluation not found with id " + id));
+            }
+
+            return ResponseEntity.ok(toResponse(evaluationOpt.get()));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while fetching the evaluation."));
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<EvaluationResponse> updateEvaluation(@PathVariable Long id, @RequestBody EvaluationRequest request) {
-        return evaluationRepository.findById(id)
-                .map(existing -> {
-                    Mission mission = missionRepository.findById(request.getMissionId())
-                            .orElseThrow(() -> new RuntimeException("Mission not found"));
+    public ResponseEntity<?> updateEvaluation(@PathVariable Long id, @RequestBody EvaluationRequest request) {
+        try {
+            Optional<Evaluation> evaluationOpt = evaluationRepository.findById(id);
+            if (evaluationOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Evaluation not found with id " + id));
+            }
 
-                    existing.setRating(request.getRating());
-                    existing.setComment(request.getComment());
-                    existing.setMission(mission);
+            Optional<Mission> missionOpt = missionRepository.findById(request.getMissionId());
+            if (missionOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Mission not found with id " + request.getMissionId()));
+            }
 
-                    Evaluation updated = evaluationRepository.save(existing);
-                    return ResponseEntity.ok(toResponse(updated));
-                })
-                .orElse(ResponseEntity.notFound().build());
+            Evaluation existing = evaluationOpt.get();
+            existing.setRating(request.getRating());
+            existing.setComment(request.getComment());
+            existing.setMission(missionOpt.get());
+
+            Evaluation updated = evaluationRepository.save(existing);
+            return ResponseEntity.ok(toResponse(updated));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while updating the evaluation."));
+        }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEvaluation(@PathVariable Long id) {
-        return evaluationRepository.findById(id)
-                .map(existing -> {
-                    evaluationRepository.delete(existing);
-                    return ResponseEntity.noContent().<Void>build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> deleteEvaluation(@PathVariable Long id) {
+        try {
+            Optional<Evaluation> evaluationOpt = evaluationRepository.findById(id);
+            if (evaluationOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("Evaluation not found with id " + id));
+            }
+
+            evaluationRepository.delete(evaluationOpt.get());
+            return ResponseEntity.noContent().build();
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("An error occurred while deleting the evaluation."));
+        }
     }
 
     private EvaluationResponse toResponse(Evaluation evaluation) {
