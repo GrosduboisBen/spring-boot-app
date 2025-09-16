@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import com.example.demo.dto.ProviderRequest;
 import com.example.demo.model.Provider;
 import com.example.demo.repository.CompanyRepository;
 import com.example.demo.repository.EvaluationRepository;
@@ -94,14 +95,19 @@ class ProviderControllerTest {
     }
 
     @Test
-    void testUpdateProvider() throws Exception {
-        provider.setName("Updated Name");
+    void testPatchProvider() throws Exception {
+        // Crée un DTO pour partial update
+        ProviderRequest request = ProviderRequest.builder()
+                .name("Updated Name")
+                .build();
 
-        mockMvc.perform(put("/api/providers/" + provider.getId())
+        mockMvc.perform(patch("/api/providers/" + provider.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(provider)))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Updated Name"));
+                .andExpect(jsonPath("$.name").value("Updated Name"))
+                .andExpect(jsonPath("$.email").value(provider.getEmail())) // inchangé
+                .andExpect(jsonPath("$.category").value(provider.getCategory().name())); // inchangé
     }
 
     @Test

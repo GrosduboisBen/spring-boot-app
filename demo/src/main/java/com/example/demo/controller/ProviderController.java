@@ -74,8 +74,10 @@ public class ProviderController {
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateProvider(@PathVariable Long id, @RequestBody ProviderRequest request) {
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> patchProvider(
+            @PathVariable Long id,
+            @RequestBody ProviderRequest request) {
         try {
             Optional<Provider> providerOpt = providerRepository.findById(id);
             if (providerOpt.isEmpty()) {
@@ -84,10 +86,10 @@ public class ProviderController {
             }
 
             Provider existing = providerOpt.get();
-            existing.setName(request.getName());
-            existing.setEmail(request.getEmail());
-            existing.setContact(request.getContact());
-            existing.setCategory(request.getCategory());
+            if (request.getName() != null) existing.setName(request.getName());
+            if (request.getEmail() != null) existing.setEmail(request.getEmail());
+            if (request.getContact() != null) existing.setContact(request.getContact());
+            if (request.getCategory() != null) existing.setCategory(request.getCategory());
 
             Provider updated = providerRepository.save(existing);
             return ResponseEntity.ok(toResponse(updated));
