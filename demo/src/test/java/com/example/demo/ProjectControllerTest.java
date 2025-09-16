@@ -108,22 +108,21 @@ class ProjectControllerTest {
     }
 
     @Test
-    void testUpdateProject() throws Exception {
-          String json = """
-        {
-            "title":"New Title",
-            "description":"New Desc",
-            "budget":12000.0,
-            "companyId":%d
-        }
-        """.formatted(company.getId());
+    void testPatchProject() throws Exception {
+        String json = """
+            {
+                "title":"New Title",
+                "budget":12000.0
+            }
+            """;
 
-    mockMvc.perform(put("/api/projects/" + project.getId())
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.title").value("New Title"))
-        .andExpect(jsonPath("$.budget").value(12000.0));
+        mockMvc.perform(patch("/api/projects/" + project.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.title").value("New Title"))
+            .andExpect(jsonPath("$.budget").value(12000.0))
+            .andExpect(jsonPath("$.description").value("Redesign corporate website")); // inchangé
     }
 
     @Test

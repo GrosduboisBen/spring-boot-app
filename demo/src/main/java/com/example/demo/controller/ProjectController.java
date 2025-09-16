@@ -83,15 +83,9 @@ public class ProjectController {
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateProject(@PathVariable Long id, @RequestBody ProjectRequest request) {
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> patchProject(@PathVariable Long id, @RequestBody ProjectRequest request) {
         try {
-            Optional<Company> companyOpt = companyRepository.findById(request.getCompanyId());
-            if (companyOpt.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(new ErrorResponse("Company not found with id " + request.getCompanyId()));
-            }
-
             Optional<Project> projectOpt = projectRepository.findById(id);
             if (projectOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -99,10 +93,25 @@ public class ProjectController {
             }
 
             Project existing = projectOpt.get();
-            existing.setTitle(request.getTitle());
-            existing.setDescription(request.getDescription());
-            existing.setBudget(request.getBudget());
-            existing.setCompany(companyOpt.get());
+
+            // Mise à jour conditionnelle
+            if (request.getTitle() != null) {
+                existing.setTitle(request.getTitle());
+            }
+            if (request.getDescription() != null) {
+                existing.setDescription(request.getDescription());
+            }
+            if (request.getBudget() != null) {
+                existing.setBudget(request.getBudget());
+            }
+            if (request.getCompanyId() != null) {
+                Optional<Company> companyOpt = companyRepository.findById(request.getCompanyId());
+                if (companyOpt.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(new ErrorResponse("Company not found with id " + request.getCompanyId()));
+                }
+                existing.setCompany(companyOpt.get());
+            }
 
             Project updated = projectRepository.save(existing);
             return ResponseEntity.ok(toResponse(updated));
@@ -112,6 +121,7 @@ public class ProjectController {
                     .body(new ErrorResponse("An error occurred while updating the project."));
         }
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProject(@PathVariable Long id) {

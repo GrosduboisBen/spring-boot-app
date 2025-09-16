@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import com.example.demo.dto.MissionRequest;
 import com.example.demo.model.Company;
 import com.example.demo.model.Mission;
 import com.example.demo.model.Order;
@@ -121,43 +122,40 @@ class MissionControllerTest {
 
     @Test
     void testCreateMission() throws Exception {
-        String json = """
-        {
-            "title":"New Mission",
-            "description":"Test mission",
-            "startDate":"%s",
-            "endDate":"%s",
-            "orderId":%d
-        }
-        """.formatted(LocalDate.now(), LocalDate.now().plusDays(5), order.getId());
+        MissionRequest newMission = MissionRequest.builder()
+                .title("New Mission")
+                .description("Test mission")
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusDays(5))
+                .orderId(order.getId())
+                .build();
 
-    mockMvc.perform(post("/api/missions")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.title").value("New Mission"))
-        .andExpect(jsonPath("$.orderId").value(order.getId()));
-    }
+        mockMvc.perform(post("/api/missions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(newMission)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("New Mission"))
+                .andExpect(jsonPath("$.orderId").value(order.getId()));
+}
+
 
     @Test
-    void testUpdateMission() throws Exception {
-         String json = """
-        {
-            "title":"Updated Mission",
-            "description":"Updated description",
-            "startDate":"%s",
-            "endDate":"%s",
-            "orderId":%d
-        }
-        """.formatted(LocalDate.now(), LocalDate.now().plusDays(10), order.getId());
+    void testPatchMission() throws Exception {
+        // Crée un DTO partiel pour mettre à jour seulement le titre et la date de fin
+        MissionRequest request = MissionRequest.builder()
+                .title("Updated Mission")
+                .endDate(LocalDate.now().plusDays(10))
+                .build();
 
-    mockMvc.perform(put("/api/missions/{id}", mission.getId())
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.title").value("Updated Mission"))
-        .andExpect(jsonPath("$.endDate").value(LocalDate.now().plusDays(10).toString()));
+        mockMvc.perform(patch("/api/missions/{id}", mission.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Updated Mission"))
+                .andExpect(jsonPath("$.description").value(mission.getDescription())) // inchangé
+                .andExpect(jsonPath("$.endDate").value(LocalDate.now().plusDays(10).toString()));
     }
+
 
     @Test
     void testDeleteMission() throws Exception {

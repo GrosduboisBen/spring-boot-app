@@ -86,8 +86,10 @@ public class MissionController {
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateMission(@PathVariable Long id, @RequestBody MissionRequest request) {
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> patchMission(
+            @PathVariable Long id,
+            @RequestBody MissionRequest request) {
         try {
             Optional<Mission> missionOpt = missionRepository.findById(id);
             if (missionOpt.isEmpty()) {
@@ -95,18 +97,21 @@ public class MissionController {
                         .body(new ErrorResponse("Mission not found with id " + id));
             }
 
-            Optional<Order> orderOpt = orderRepository.findById(request.getOrderId());
-            if (orderOpt.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(new ErrorResponse("Order not found with id " + request.getOrderId()));
-            }
-
             Mission existing = missionOpt.get();
-            existing.setTitle(request.getTitle());
-            existing.setDescription(request.getDescription());
-            existing.setStartDate(request.getStartDate());
-            existing.setEndDate(request.getEndDate());
-            existing.setOrder(orderOpt.get());
+
+            if (request.getTitle() != null) existing.setTitle(request.getTitle());
+            if (request.getDescription() != null) existing.setDescription(request.getDescription());
+            if (request.getStartDate() != null) existing.setStartDate(request.getStartDate());
+            if (request.getEndDate() != null) existing.setEndDate(request.getEndDate());
+
+            if (request.getOrderId() != null) {
+                Optional<Order> orderOpt = orderRepository.findById(request.getOrderId());
+                if (orderOpt.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new ErrorResponse("Order not found with id " + request.getOrderId()));
+                }
+                existing.setOrder(orderOpt.get());
+            }
 
             Mission updated = missionRepository.save(existing);
             return ResponseEntity.ok(toResponse(updated));
@@ -116,6 +121,7 @@ public class MissionController {
                     .body(new ErrorResponse("An error occurred while updating the mission."));
         }
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteMission(@PathVariable Long id) {

@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import com.example.demo.dto.OrderRequest;
 import com.example.demo.model.Company;
 import com.example.demo.model.Order;
 import com.example.demo.model.Project;
@@ -109,45 +110,43 @@ class OrderControllerTest {
 
     @Test
     void testCreateOrder() throws Exception {
-         String json = """
-        {
-            "description":"Build API",
-            "quantity":1,
-            "status":"PENDING",
-            "projectId":%d,
-            "providerId":%d
-        }
-        """.formatted(project.getId(), provider.getId());
+        OrderRequest newOrder = OrderRequest.builder()
+                .description("Build API")
+                .quantity(1)
+                .status(Order.Status.PENDING)
+                .projectId(project.getId())
+                .providerId(provider.getId())
+                .build();
 
-    mockMvc.perform(post("/api/orders")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.description").value("Build API"))
-        .andExpect(jsonPath("$.projectId").value(project.getId()))
-        .andExpect(jsonPath("$.providerId").value(provider.getId()));
+        mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(newOrder)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").value("Build API"))
+                .andExpect(jsonPath("$.projectId").value(project.getId()))
+                .andExpect(jsonPath("$.providerId").value(provider.getId()));
     }
+
 
     @Test
-    void testUpdateOrder() throws Exception {
-        String json = """
-        {
-            "description":"Updated API Order",
-            "quantity":3,
-            "status":"VALIDATED",
-            "projectId":%d,
-            "providerId":%d
-        }
-        """.formatted(project.getId(), provider.getId());
+    void testPatchOrder() throws Exception {
+        // Patch partiel : seulement description et quantité
+        OrderRequest request = OrderRequest.builder()
+                .description("Updated API Order")
+                .quantity(3)
+                .build();
 
-    mockMvc.perform(put("/api/orders/{id}", order.getId())
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.description").value("Updated API Order"))
-        .andExpect(jsonPath("$.quantity").value(3))
-        .andExpect(jsonPath("$.status").value("VALIDATED"));
+        mockMvc.perform(patch("/api/orders/{id}", order.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").value("Updated API Order"))
+                .andExpect(jsonPath("$.quantity").value(3))
+                .andExpect(jsonPath("$.status").value(order.getStatus().name())) // inchangé
+                .andExpect(jsonPath("$.projectId").value(order.getProject().getId()))
+                .andExpect(jsonPath("$.providerId").value(order.getProvider().getId()));
     }
+
 
     @Test
     void testDeleteOrder() throws Exception {

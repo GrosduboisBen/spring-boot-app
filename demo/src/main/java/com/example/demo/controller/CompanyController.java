@@ -81,16 +81,26 @@ public class CompanyController {
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateCompany(@PathVariable Long id, @RequestBody CompanyRequest request) {
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> patchCompany(@PathVariable Long id, @RequestBody CompanyRequest request) {
         try {
             var companyOpt = companyRepository.findById(id);
             if (companyOpt.isPresent()) {
                 Company existing = companyOpt.get();
-                existing.setName(request.getName());
-                existing.setEmail(request.getEmail());
-                existing.setContact(request.getContact());
-                existing.setIndustry(request.getIndustry());
+
+                if (request.getName() != null) {
+                    existing.setName(request.getName());
+                }
+                if (request.getEmail() != null) {
+                    existing.setEmail(request.getEmail());
+                }
+                if (request.getContact() != null) {
+                    existing.setContact(request.getContact());
+                }
+                if (request.getIndustry() != null) {
+                    existing.setIndustry(request.getIndustry());
+                }
+
                 Company updated = companyRepository.save(existing);
                 return ResponseEntity.ok(toResponse(updated));
             } else {
