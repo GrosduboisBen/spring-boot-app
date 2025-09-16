@@ -122,23 +122,22 @@ class MissionControllerTest {
 
     @Test
     void testCreateMission() throws Exception {
-        String json = """
-        {
-            "title":"New Mission",
-            "description":"Test mission",
-            "startDate":"%s",
-            "endDate":"%s",
-            "orderId":%d
-        }
-        """.formatted(LocalDate.now(), LocalDate.now().plusDays(5), order.getId());
+        MissionRequest newMission = MissionRequest.builder()
+                .title("New Mission")
+                .description("Test mission")
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusDays(5))
+                .orderId(order.getId())
+                .build();
 
-    mockMvc.perform(post("/api/missions")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.title").value("New Mission"))
-        .andExpect(jsonPath("$.orderId").value(order.getId()));
-    }
+        mockMvc.perform(post("/api/missions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(newMission)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("New Mission"))
+                .andExpect(jsonPath("$.orderId").value(order.getId()));
+}
+
 
     @Test
     void testPatchMission() throws Exception {
