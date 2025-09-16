@@ -97,8 +97,9 @@ public class OrderController {
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateOrder(@PathVariable Long id, @RequestBody OrderRequest request) {
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> patchOrder(@PathVariable Long id,
+                                        @RequestBody OrderRequest request) {
         try {
             Optional<Order> orderOpt = orderRepository.findById(id);
             if (orderOpt.isEmpty()) {
@@ -106,24 +107,29 @@ public class OrderController {
                         .body(new ErrorResponse("Order not found with id " + id));
             }
 
-            Optional<Project> projectOpt = projectRepository.findById(request.getProjectId());
-            if (projectOpt.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(new ErrorResponse("Project not found with id " + request.getProjectId()));
-            }
-
-            Optional<Provider> providerOpt = providerRepository.findById(request.getProviderId());
-            if (providerOpt.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(new ErrorResponse("Provider not found with id " + request.getProviderId()));
-            }
-
             Order existing = orderOpt.get();
-            existing.setDescription(request.getDescription());
-            existing.setQuantity(request.getQuantity());
-            existing.setStatus(request.getStatus());
-            existing.setProject(projectOpt.get());
-            existing.setProvider(providerOpt.get());
+
+            if (request.getDescription() != null) existing.setDescription(request.getDescription());
+            if (request.getQuantity() != null) existing.setQuantity(request.getQuantity());
+            if (request.getStatus() != null) existing.setStatus(request.getStatus());
+
+            if (request.getProjectId() != null) {
+                Optional<Project> projectOpt = projectRepository.findById(request.getProjectId());
+                if (projectOpt.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new ErrorResponse("Project not found with id " + request.getProjectId()));
+                }
+                existing.setProject(projectOpt.get());
+            }
+
+            if (request.getProviderId() != null) {
+                Optional<Provider> providerOpt = providerRepository.findById(request.getProviderId());
+                if (providerOpt.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new ErrorResponse("Provider not found with id " + request.getProviderId()));
+                }
+                existing.setProvider(providerOpt.get());
+            }
 
             Order updated = orderRepository.save(existing);
             return ResponseEntity.ok(toResponse(updated));
@@ -133,6 +139,7 @@ public class OrderController {
                     .body(new ErrorResponse("An error occurred while updating the order."));
         }
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteOrder(@PathVariable Long id) {
