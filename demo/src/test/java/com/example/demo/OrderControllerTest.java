@@ -110,24 +110,23 @@ class OrderControllerTest {
 
     @Test
     void testCreateOrder() throws Exception {
-         String json = """
-        {
-            "description":"Build API",
-            "quantity":1,
-            "status":"PENDING",
-            "projectId":%d,
-            "providerId":%d
-        }
-        """.formatted(project.getId(), provider.getId());
+        OrderRequest newOrder = OrderRequest.builder()
+                .description("Build API")
+                .quantity(1)
+                .status(Order.Status.PENDING)
+                .projectId(project.getId())
+                .providerId(provider.getId())
+                .build();
 
-    mockMvc.perform(post("/api/orders")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.description").value("Build API"))
-        .andExpect(jsonPath("$.projectId").value(project.getId()))
-        .andExpect(jsonPath("$.providerId").value(provider.getId()));
+        mockMvc.perform(post("/api/orders")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(newOrder)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").value("Build API"))
+                .andExpect(jsonPath("$.projectId").value(project.getId()))
+                .andExpect(jsonPath("$.providerId").value(provider.getId()));
     }
+
 
     @Test
     void testPatchOrder() throws Exception {
