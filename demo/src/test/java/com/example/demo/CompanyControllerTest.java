@@ -94,14 +94,14 @@ class CompanyControllerTest {
     }
 
     @Test
-    void testUpdateCompany() throws Exception {
-        company.setName("Updated Name");
+    void testPatchCompany() throws Exception {
+        String newName = "Updated Name";
 
-        mockMvc.perform(put("/api/companies/" + company.getId())
+        mockMvc.perform(patch("/api/companies/" + company.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(company)))
+                        .content("{\"name\":\"" + newName + "\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Updated Name"));
+                .andExpect(jsonPath("$.name").value(newName));
     }
 
     @Test
