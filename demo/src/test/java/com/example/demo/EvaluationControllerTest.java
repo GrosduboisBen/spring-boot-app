@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import com.example.demo.dto.EvaluationRequest;
 import com.example.demo.model.Company;
 import com.example.demo.model.Evaluation;
 import com.example.demo.model.Mission;
@@ -150,22 +151,21 @@ class EvaluationControllerTest {
     }
 
     @Test
-    void testUpdateEvaluation() throws Exception {
-            String json = """
-        {
-            "rating":5,
-            "comment":"Excellent work",
-            "missionId":%d
-        }
-        """.formatted(mission.getId());
+    void testPatchEvaluation() throws Exception {
+        // Patch partiel : seulement rating
+        EvaluationRequest request = EvaluationRequest.builder()
+                .rating(5)
+                .build();
 
-    mockMvc.perform(put("/api/evaluations/{id}", evaluation.getId())
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.rating").value(5))
-        .andExpect(jsonPath("$.comment").value("Excellent work"));
+        mockMvc.perform(patch("/api/evaluations/{id}", evaluation.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rating").value(5))
+                .andExpect(jsonPath("$.comment").value(evaluation.getComment()))
+                .andExpect(jsonPath("$.missionId").value(evaluation.getMission().getId()));
     }
+
 
     @Test
     void testDeleteEvaluation() throws Exception {

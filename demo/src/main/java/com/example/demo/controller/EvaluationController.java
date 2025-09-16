@@ -84,8 +84,9 @@ public class EvaluationController {
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateEvaluation(@PathVariable Long id, @RequestBody EvaluationRequest request) {
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> patchEvaluation(@PathVariable Long id,
+                                            @RequestBody EvaluationRequest request) {
         try {
             Optional<Evaluation> evaluationOpt = evaluationRepository.findById(id);
             if (evaluationOpt.isEmpty()) {
@@ -93,16 +94,19 @@ public class EvaluationController {
                         .body(new ErrorResponse("Evaluation not found with id " + id));
             }
 
-            Optional<Mission> missionOpt = missionRepository.findById(request.getMissionId());
-            if (missionOpt.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(new ErrorResponse("Mission not found with id " + request.getMissionId()));
-            }
-
             Evaluation existing = evaluationOpt.get();
-            existing.setRating(request.getRating());
-            existing.setComment(request.getComment());
-            existing.setMission(missionOpt.get());
+
+            if (request.getRating() != null) existing.setRating(request.getRating());
+            if (request.getComment() != null) existing.setComment(request.getComment());
+
+            if (request.getMissionId() != null) {
+                Optional<Mission> missionOpt = missionRepository.findById(request.getMissionId());
+                if (missionOpt.isEmpty()) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                            .body(new ErrorResponse("Mission not found with id " + request.getMissionId()));
+                }
+                existing.setMission(missionOpt.get());
+            }
 
             Evaluation updated = evaluationRepository.save(existing);
             return ResponseEntity.ok(toResponse(updated));
@@ -112,6 +116,7 @@ public class EvaluationController {
                     .body(new ErrorResponse("An error occurred while updating the evaluation."));
         }
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteEvaluation(@PathVariable Long id) {
