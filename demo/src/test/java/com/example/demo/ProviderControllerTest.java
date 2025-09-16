@@ -79,7 +79,7 @@ class ProviderControllerTest {
 
     @Test
     void testCreateProvider() throws Exception {
-        Provider newProvider = Provider.builder()
+        ProviderRequest newProvider = ProviderRequest.builder()
                 .name("Jane Smith")
                 .email("jane@provider.com")
                 .contact("987654321")
@@ -93,6 +93,7 @@ class ProviderControllerTest {
                 .andExpect(jsonPath("$.name").value("Jane Smith"))
                 .andExpect(jsonPath("$.category").value("DESIGN"));
     }
+
 
     @Test
     void testPatchProvider() throws Exception {
