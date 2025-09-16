@@ -134,21 +134,20 @@ class EvaluationControllerTest {
 
     @Test
     void testCreateEvaluation() throws Exception {
-      String json = """
-        {
-            "rating":4,
-            "comment":"Good work",
-            "missionId":%d
-        }
-        """.formatted(mission.getId());
+        EvaluationRequest newEval = EvaluationRequest.builder()
+                .rating(4)
+                .comment("Good work")
+                .missionId(mission.getId())
+                .build();
 
-    mockMvc.perform(post("/api/evaluations")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(json))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.rating").value(4))
-        .andExpect(jsonPath("$.missionId").value(mission.getId()));
+        mockMvc.perform(post("/api/evaluations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(newEval)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rating").value(4))
+                .andExpect(jsonPath("$.missionId").value(mission.getId()));
     }
+
 
     @Test
     void testPatchEvaluation() throws Exception {
